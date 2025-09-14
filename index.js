@@ -40,7 +40,18 @@ async function run() {
        res.send (expiryChecked);
     })
 
-   
+    //food post api --
+    app.post('/foods', async(req, res) =>{
+        const foodData = req.body;
+
+        const today = new Date().toISOString().split('T')[0];
+        foodData.expired = foodData.expiryDate < today;
+
+        const result = await foodCollection.insertOne(foodData);
+        res.send(result)
+    })
+
+
 
 
 

@@ -59,7 +59,20 @@ async function run() {
       res.send(result);
     })
 
-
+    // add note to the single food
+    app.patch('/foods/:id', async(req, res) =>{
+      const id = req.params.id;
+      const note = req.body;
+      const query = {_id: new ObjectId(id)};
+      const addedDoc = {
+        $push:{
+          notes: note
+        }
+      }
+      const result = await foodCollection.updateOne(query, addedDoc);
+      res.send(result);
+    })
+    
 
 
 

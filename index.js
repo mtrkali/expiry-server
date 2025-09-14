@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 3000
 
@@ -26,6 +26,24 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+    const foodCollection = client.db('expiryFood').collection('foods')
+
+    //foods get api --
+    app.get('/foods', async(req, res)=>{
+        const foods = await foodCollection.find().toArray();
+        const today = new Date();
+
+        const expiryChecked = foods.map(food =>{
+            const isExpired = new Date(food.expiryDate)< today;
+            return {...food,expired: isExpired}
+        })
+       res.send (expiryChecked);
+    })
+
+   
+
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");

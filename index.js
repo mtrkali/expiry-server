@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 3000;
 
 //middleware --
 app.use(cors())
@@ -30,7 +30,10 @@ async function run() {
 
     //foods get api --
     app.get('/foods', async(req, res)=>{
-        const foods = await foodCollection.find().toArray();
+        const email =req.query.email;
+        const query = email?{userEmail:email}: {};
+
+        const foods = await foodCollection.find(query).toArray();
         const today = new Date();
 
         const expiryChecked = foods.map(food =>{
@@ -74,6 +77,7 @@ async function run() {
     })
     
 
+   
 
 
     // Send a ping to confirm a successful connection

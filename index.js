@@ -26,18 +26,40 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    const foodCollection = client.db('expiryFood').collection('foods')
+    const foodCollection = client.db('expiryFood').collection('foods');
+    const usersCollection = client.db('expiryFood').collection('users');
 
     //foods get api --
     app.get('/foods', async(req, res)=>{
-        const email =req.query.email;
+        const {email, type} =req.query;
         const query = email?{userEmail:email}: {};
-
-        const foods = await foodCollection.find(query).toArray();
+ 
         const today = new Date();
+        today.setHours(0,0,0,0)
+        const next5Days = new Date();
+        next5Days.setHours(23, 59, 59, 999);
+        next5Days.setDate(today.getDate()+5)
+
+        let foods
+
+        if(type === 'nearly-expiry'){
+          foods = await foodCollection.find({
+            expiryDate: {
+              $gte: today,
+              $lte: next5Days
+            }
+          })
+          .sort({expiryDate: 1})
+          .limit(6)
+          .toArray();
+        }else if(email){
+          foods = await foodCollection.find(query).toArray();
+        }else{
+          foods = await foodCollection.find({}).toArray()
+        }
 
         const expiryChecked = foods.map(food =>{
-            const isExpired = new Date(food.expiryDate)< today;
+            const isExpired = new Date(food.expiryDate) < today;
             return {...food,expired: isExpired}
         })
        res.send (expiryChecked);
@@ -47,8 +69,15 @@ async function run() {
     app.post('/foods', async(req, res) =>{
         const foodData = req.body;
 
-        const today = new Date().toISOString().split('T')[0];
-        foodData.expired = foodData.expiryDate < today;
+        if(foodData.expiryDate){
+          foodData.expiryDate = new Date(foodData.expiryDate);
+        }
+
+        const today = new Date();
+        today.setHours(23,59,59,999);
+
+        // to add expired flag
+        foodData.expired = foodData.expiryDate <= today;
 
         const result = await foodCollection.insertOne(foodData);
         res.send(result)
@@ -84,7 +113,32 @@ async function run() {
     })
     
 
+    app.put('/foods/:id', async(req, res)=>{
+      const updatedFood = req.body;
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const updatedDoc = {
+        $set:updatedFood
+      }
+      const result = await foodCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    })
    
+
+    // user data post--
+    app.post('/users', async(req, res) =>{
+      const newUser = req.body;
+      const result = await usersCollection.insertOne(newUser);
+      res.send(result);
+    });
+
+    //user's get --
+    app.get('/users', async(req, res)=>{
+      const email = req.query.email;
+      const query = email?{email:email}:{}
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    })
 
 
     // Send a ping to confirm a successful connection
